@@ -2,6 +2,7 @@ package com.eyeofmidas.eradatus.security;
 
 import java.security.Principal;
 
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
@@ -11,11 +12,11 @@ public class Authorizer implements SecurityContext {
 
 	private User user;
 	private Principal principal;
+	@Context
 	private UriInfo uriInfo;
 
-	public Authorizer(final User user, UriInfo uriInfo) {
+	public Authorizer(final User user) {
 		this.user = user;
-		this.uriInfo = uriInfo;
 		this.principal = new Principal() {
 
 			public String getName() {

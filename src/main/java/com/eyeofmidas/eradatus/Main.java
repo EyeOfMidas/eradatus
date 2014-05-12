@@ -10,13 +10,19 @@ import org.glassfish.grizzly.servlet.ServletHandler;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 
-import com.eyeofmidas.eradatus.security.SecurityFilter;
+import com.eyeofmidas.eradatus.security.AuthFilter;
 import com.sun.jersey.api.container.grizzly2.GrizzlyServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 public class Main {
+
+	private static boolean secure = true;
+	public static final URI BASE_URI = getBaseURI();
+	public static final String CONTENT = "Eradatus Server";
+
+	// set to true if using ssl certificates for security
 
 	private static int getPort(int defaultPort) {
 		// grab port from environment, otherwise fall back to default port 9998
@@ -34,29 +40,24 @@ public class Main {
 		return UriBuilder.fromUri("http" + (secure ? "s" : "") + "://localhost/").port(getPort(9998)).build();
 	}
 
-	public static final URI BASE_URI = getBaseURI();
-	//set to true if using ssl certificates for security
-	private static boolean secure = false;
-
 	protected static HttpServer startServer() throws IOException {
 		SSLContextConfigurator sslContext = new SSLContextConfigurator();
-		sslContext.setKeyStoreFile("./server.jks");
-		sslContext.setKeyStorePass("eradatus");
-		sslContext.setTrustStoreFile("./server.tst");
-		sslContext.setTrustStorePass("eradatus");
-
 		ServletHandler handler = new ServletHandler();
 		handler.addInitParameter(PackagesResourceConfig.PROPERTY_PACKAGES, "com.eyeofmidas.eradatus");
-		//TODO: password handling still experimental
-//		if (secure) {
-//			handler.addInitParameter(ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS, SecurityFilter.class.getName());
-//		}
+
+		if (secure) {
+			sslContext.setKeyStoreFile("./server.jks");
+			sslContext.setKeyStorePass("eradatus");
+			sslContext.setTrustStoreFile("./server.tst");
+			sslContext.setTrustStorePass("eradatus");
+			handler.addInitParameter(ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS, AuthFilter.class.getName());
+		}
 		handler.setServletInstance(new ServletContainer());
 
 		SSLEngineConfigurator sslEngineConfigurator = new SSLEngineConfigurator(sslContext);
 		sslEngineConfigurator.setClientMode(false);
 		if (secure) {
-			sslEngineConfigurator.setNeedClientAuth(true);
+			sslEngineConfigurator.setWantClientAuth(true);
 		}
 
 		System.out.println("Starting grizzly2...");
